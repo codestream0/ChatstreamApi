@@ -13,7 +13,7 @@ export class Auth extends Document {
     password: string;
 
     @Prop({required:true})
-    comfirmPassword: string
+    phoneNumber: number;
 }
 
 export const AuthSchema = SchemaFactory.createForClass(Auth);
