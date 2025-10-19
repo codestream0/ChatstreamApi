@@ -18,7 +18,6 @@ export class SignupDto {
   password: string;
 }
 
-
 export class LoginDto {
   @IsEmail()
   @IsNotEmpty()
@@ -29,10 +28,8 @@ export class LoginDto {
   password: string;
 }
 
-
-export class forgotPasswordDto{
+export class ForgotPasswordDto {
   @IsEmail()
   @IsString()
-  email: string
+  email: string;
 }
-
