@@ -11,13 +11,11 @@ export class SignupDto {
 
   @IsNotEmpty()
   @MinLength(11)
-phoneNumber: number;
+  phoneNumber: number;
 
   @IsString()
   @MinLength(6)
   password: string;
-
-
 }
 
 
@@ -29,5 +27,12 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+
+export class forgotPasswordDto{
+  @IsEmail()
+  @IsString()
+  email: string
 }
 

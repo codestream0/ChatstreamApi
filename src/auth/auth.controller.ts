@@ -8,11 +8,8 @@ export class AuthController{
     constructor(private authservice:AuthService){}
 
     @Post('signup')
-    //dto: data transfer object
     signup(@Body() dto:SignupDto){
-        // console.log({
-        //     dto
-        // });
+        console.log({ dto });
         
        return this.authservice.signup(dto);
     }
@@ -20,10 +17,13 @@ export class AuthController{
 
     @Post('login')
     login(@Body() dot:LoginDto){
-        console.log({
-            ...dot
-        });
-        
+        console.log({ dot });
        return this.authservice.login(dot);
+    }
+
+
+    @Post()
+    forgotPassword(){
+    return this.authservice.forgotPassword();
     }
 }
