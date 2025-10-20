@@ -20,7 +20,7 @@ export class AuthController {
   }
 
   @Post('forgotPassword')
-  forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authservice.forgotPassword(dto);
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return await this.authservice.sendOtp(dto);
   }
 }

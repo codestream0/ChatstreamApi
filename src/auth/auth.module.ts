@@ -4,12 +4,12 @@ import { AuthService } from './auth.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../schemas/user.schema';
 import { MailModule } from '../mail/mail.module';
-// import Mail from 'nodemailer/lib/mailer';
+
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-   MailModule 
+    MailModule 
   ],
   controllers: [AuthController],
   providers: [AuthService],

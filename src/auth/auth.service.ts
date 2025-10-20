@@ -8,10 +8,16 @@ import * as bcrypt from 'bcrypt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../schemas/user.schema';
+import { MailService } from '../mail/mail.service';
+import { OtpEmail } from 'src/mail/template/otp.email';
+import { render } from '@react-email/render';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    private readonly mailService: MailService,
+    @InjectModel(User.name) private readonly userModel: Model<User>
+  ) {}
 
   async signup(dto: SignupDto) {
     try {
@@ -52,24 +58,35 @@ export class AuthService {
     }
   }
 
-//   async sendOtp(dto: ForgotPasswordDto) {
-//     try {
-//       const otpCode = Math.floor(100000 + Math.random() * 900000);
-//       const existingUser = await this.userModel.findOne({ email: dto.email });
-//       if (!existingUser)
-//         throw new UnauthorizedException('invalid incredential');
-//       console.log(otpCode);
-//       // const confirmUser = new this.userModel({
-//       //     otpCode,
-//       //     email:dto.email
-//       // })
-//       // const saveTodb = await confirmUser.save();
-//       // return({
-//       //     saveTodb,
-//       //     msg:"sucessful"
-//       // })
-//     } catch (error) {
-//       return error;
-//     }
-//   }
+
+  async sendOtp(dto: ForgotPasswordDto) {
+    try {
+      const existingUser = await this.userModel.findOne({ email: dto.email });
+      if (!existingUser) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const html = await render(OtpEmail({ otp }));
+
+      console.log(`Generated OTP for ${dto.email}: ${otp}`);
+
+      const mailSent = await this.mailService.sendMail(
+        dto.email,
+        'Password Reset OTP',
+        otp, 
+      );
+
+      // existingUser.otp = otp;
+      // await existingUser.save();
+      return {
+        msg: 'OTP sent successfully',
+        email: dto.email,
+        mailSent,
+      };
+    } catch (error) {
+      console.error('❌ Error sending OTP:', error.message);
+      throw new BadRequestException(error.message);
+    }
+}
 }
