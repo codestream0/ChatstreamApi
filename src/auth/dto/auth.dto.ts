@@ -28,8 +28,38 @@ export class LoginDto {
   password: string;
 }
 
-export class ForgotPasswordDto {
+export class forgotPasswordDto {
   @IsEmail()
   @IsString()
   email: string;
+}
+
+export class verifyOtp {
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+
+  @IsString()
+  @IsEmail()
+  email: string;
+}
+
+export class resetPasswordDto{
+  @IsString()
+  @IsNotEmpty()
+  email:string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword:string;
+}
+
+export class refreshTokenDto{
+  @IsString()
+  @IsNotEmpty()
+  token:string;
 }

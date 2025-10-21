@@ -195,14 +195,14 @@ export const OtpEmail: React.FC<OtpEmailProps> = ({ otp }) => {
         <div style={contentStyle}>
           <h2 style={titleStyle}>Your Verification Code</h2>
           <p style={descriptionStyle}>
-            We've sent you a secure one-time password to verify your identity. This code is valid for 10 minutes.
+            We've sent you a secure one-time password to verify your identity. This code is valid for 5 minutes.
           </p>
 
           {/* OTP Box */}
           <div style={otpBoxStyle}>
             <p style={otpLabelStyle}>Enter This Code</p>
             <p style={otpCodeStyle}>{otp}</p>
-            <p style={expiryStyle}>⏱️ Expires in 10 minutes</p>
+            <p style={expiryStyle}>⏱️ Expires in 5 minutes</p>
           </div>
 
           <div style={noteStyle}>
