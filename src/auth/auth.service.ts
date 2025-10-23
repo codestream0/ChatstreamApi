@@ -13,7 +13,7 @@ import { MailService } from '../mail/mail.service';
 import { OtpEmail } from 'src/mail/template/otp.email';
 import { render } from '@react-email/render';
 import { JwtService } from '@nestjs/jwt';
-// import { UserService } from 'src/user/user.service';
+
 
 
 @Injectable()
@@ -21,7 +21,6 @@ export class AuthService {
   constructor(
     private readonly mailService: MailService,
     private readonly JwtService: JwtService,
-    // private readonly userService: UserService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
   ) {}
@@ -41,9 +40,18 @@ export class AuthService {
       console.log(newUser);
 
       const saveTodb = await newUser.save();
+      const tokens = await this.generateToken(saveTodb);
+
       return {
-        saveTodb,
         msg: 'signup successful',
+        user: {
+          id: saveTodb._id,
+          fullName: saveTodb.fullName,
+          email: saveTodb.email,
+          phoneNumber: saveTodb.phoneNumber,
+          password: saveTodb.password,
+        },
+        ...tokens,
       };
     } catch (error) {
       return error;
@@ -75,7 +83,15 @@ export class AuthService {
 
       const token= await this.generateToken(user);
 
-       return { msg: 'login successful',token };
+      return { 
+        msg: 'login successful',
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+        },
+        ...token,
+    };
 
     } catch (error) {
       return error;
@@ -85,12 +101,19 @@ export class AuthService {
   async refreshToken(dto:refreshTokenDto){
     try {
       const decode = this.JwtService.verify(dto.token)
-    //   const user = this.userService.
-    //   if(!user){
-    //     throw new UnauthorizedException('Invalid token')
-    //   }
-    } catch (error) {
+      const user = await this.userModel.findById(decode.sub);
+      if(!user) throw new UnauthorizedException('Invalid credentials');
       
+      const tokens = await this.generateToken(user);
+
+      return {
+        msg: 'Token refreshed successfully',
+        ...tokens,
+      };
+
+    } catch (error) {
+      console.error('❌ Error refreshing token:', error.message);
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
   }
