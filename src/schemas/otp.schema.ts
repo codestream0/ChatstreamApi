@@ -9,7 +9,7 @@ export class Otp extends Document {
   @Prop({ required: true, unique: true })
   otp: string;
 
-  @Prop({ required: true, default: Date.now, expires: 600 }) 
+  @Prop({ required: true, default: Date.now, expires: 300 }) 
   createdAt: Date;
 }
 

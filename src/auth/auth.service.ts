@@ -13,6 +13,8 @@ import { MailService } from '../mail/mail.service';
 import { OtpEmail } from 'src/mail/template/otp.email';
 import { render } from '@react-email/render';
 import { JwtService } from '@nestjs/jwt';
+import { UserService } from 'src/user/user.service';
+import { CreateUserDto } from 'src/user/dto';
 
 
 
@@ -22,34 +24,38 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly JwtService: JwtService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    private readonly userService: UserService,
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
   ) {}
 
-  async signup(dto: SignupDto) {
+  async signup(dto: CreateUserDto) {
     try {
-      const existingUser = await this.userModel.findOne({ email: dto.email });
+      const existingUser = await this.userService.findByEmail( dto.email );
       if (existingUser) throw new BadRequestException('email already exists');
 
       const hashPassword = await bcrypt.hash(dto.password, 10);
-      const newUser = new this.userModel({
-        email: dto.email,
-        password: hashPassword,
-        fullName: dto.fullName,
-        phoneNumber: dto.phoneNumber,
-      });
-      console.log(newUser);
-
-      const saveTodb = await newUser.save();
-      const tokens = await this.generateToken(saveTodb);
+      // const newUser = new this.userModel({
+      //   email: dto.email,
+      //   password: hashPassword,
+      //   fullName: dto.fullName,
+      //   phoneNumber: dto.phoneNumber,
+      // }); 
+      const user = await this.userService.create(dto)
+      console.log(user);
+      const tokens = await this.generateToken(user);
+      const userWithoutPassword = user.toObject()
+      delete userWithoutPassword.password
 
       return {
         msg: 'signup successful',
         user: {
-          id: saveTodb._id,
-          fullName: saveTodb.fullName,
-          email: saveTodb.email,
-          phoneNumber: saveTodb.phoneNumber,
-          password: saveTodb.password,
+          id: userWithoutPassword._id,
+          userWithoutPassword
+          // fullName: user.fullName,
+          // email: user.email,
+          // phoneNumber: user.phoneNumber,
+          // password: user.password,
+
         },
         ...tokens,
       };
@@ -74,7 +80,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     try {
-      const user = await this.userModel.findOne({ email: dto.email });
+      const user = await this.userService.findByEmail( dto.email );
       if (!user) throw new UnauthorizedException('invalid credential');
       // console.log("userPassword:",user.password);
       // console.log("password:",dto.password);
@@ -101,7 +107,7 @@ export class AuthService {
   async refreshToken(dto:refreshTokenDto){
     try {
       const decode = this.JwtService.verify(dto.token)
-      const user = await this.userModel.findById(decode.sub);
+      const user = await this.userService.findById(decode.sub);
       if(!user) throw new UnauthorizedException('Invalid credentials');
       
       const tokens = await this.generateToken(user);
@@ -120,7 +126,7 @@ export class AuthService {
 
   async sendOtp(dto: forgotPasswordDto) {
     try {
-      const existingUser = await this.userModel.findOne({ email: dto.email });
+      const existingUser = await this.userService.findByEmail( dto.email );
       if (!existingUser) {
         throw new UnauthorizedException('Invalid credentials');
       }
@@ -161,7 +167,9 @@ export class AuthService {
       if (!otpRecord) {
         throw new BadRequestException('OTP not found or expired');
       }
-      if(otpRecord.otp !== dto.otp){
+      console.log("otpRecord:",otpRecord);
+
+      if(dto.otp !== otpRecord.otp){
         throw new BadRequestException('Invalid OTP');
       }
 
@@ -169,6 +177,7 @@ export class AuthService {
       const otpAge = (now.getTime() - otpRecord.createdAt.getTime()) / 1000; 
       console.log('OTP age in seconds:', otpAge);
       console.log('OTP created at:', otpRecord.createdAt);
+      
       if (otpAge > 300) {
         throw new BadRequestException('OTP has expired');
       }
@@ -183,14 +192,14 @@ export class AuthService {
 
   async resetPassword(dto: resetPasswordDto) {
     try {
-      const user = await this.userModel.findOne({ email: dto.email }).sort({ createdAt: -1 });
+    const user = await this.userModel.findOne({email: dto.email} ).sort({ createdAt: -1 });
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
       const hashPassword = await bcrypt.hash(dto.newPassword, 10);
       user.password = hashPassword;
-      const updatePassword=await this.userModel.updateOne({ email: dto.email }, { password: hashPassword });
+      const updatePassword=await this.userModel.updateOne( {email:dto.email} , { password: hashPassword });
       await this.otpModel.deleteMany({ email: dto.email });
       
       return { msg: 'Password reset successful',updatePassword  };

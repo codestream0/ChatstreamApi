@@ -8,12 +8,15 @@ import { MailModule } from '../mail/mail.module';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
+import { MailService } from 'src/mail/mail.service';
+import { UserModule } from 'src/user/user.module';
 
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Otp.name, schema: OtpSchema }]),
+    UserModule,
     MailModule,
     PassportModule,
     JwtModule.register({
@@ -22,7 +25,7 @@ import { PassportModule } from '@nestjs/passport';
     }), 
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService,JwtStrategy,MailService],
   exports: [AuthService],
 })
 export class AuthModule {}
