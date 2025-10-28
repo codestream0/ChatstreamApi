@@ -1,9 +1,10 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SignupDto, LoginDto, forgotPasswordDto, refreshTokenDto, verifyOtp, resetPasswordDto } from './dto';
+import { LoginDto, forgotPasswordDto, refreshTokenDto, verifyOtp, resetPasswordDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -40,7 +41,13 @@ export class AuthService {
       //   fullName: dto.fullName,
       //   phoneNumber: dto.phoneNumber,
       // }); 
-      const user = await this.userService.create(dto)
+      const newUser= {
+        email:dto.email,
+        password: hashPassword,
+        fullName: dto.fullName,
+        phoneNumber:dto.phoneNumber
+      }
+      const user = await this.userService.create( newUser )
       console.log(user);
       const tokens = await this.generateToken(user);
       const userWithoutPassword = user.toObject()
@@ -67,8 +74,8 @@ export class AuthService {
   async generateToken(user: User) {
     const payload = { sub: user._id, email: user.email };
 
-    const accessToken = this.JwtService.sign(payload,{ expiresIn:"1m" });
-    const refreshToken = this.JwtService.sign(payload,{ expiresIn:"3m" });
+    const accessToken = this.JwtService.sign(payload,{ expiresIn:"5m" });
+    const refreshToken = this.JwtService.sign(payload,{ expiresIn:"10m" });
     console.log("AccessToken:",accessToken);  
     console.log("RefreshToken:",refreshToken);
 
@@ -81,11 +88,14 @@ export class AuthService {
   async login(dto: LoginDto) {
     try {
       const user = await this.userService.findByEmail( dto.email );
-      if (!user) throw new UnauthorizedException('invalid credential');
-      // console.log("userPassword:",user.password);
-      // console.log("password:",dto.password);
+      if (!user){ throw new UnauthorizedException('invalid credential');}
+      console.log("userPassword:",user.password);
+      console.log("password:",dto.password);
       const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-      if (!isPasswordValid) throw new UnauthorizedException('invalid password');
+      // if (isPasswordValid){ throw new UnauthorizedException('invalid password');}
+      if(!isPasswordValid){
+throw new UnauthorizedException("invalid password")
+      }
 
       const token= await this.generateToken(user);
 
@@ -100,8 +110,10 @@ export class AuthService {
     };
 
     } catch (error) {
-      return error;
+      if (error instanceof UnauthorizedException) throw error;
+      throw new InternalServerErrorException('Something went wrong during login');
     }
+    
   }
 
   async refreshToken(dto:refreshTokenDto){

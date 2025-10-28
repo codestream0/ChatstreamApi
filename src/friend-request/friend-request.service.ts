@@ -1,14 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as nodemailer from "nodemailer";
 import { FriendRequest } from 'src/schemas/friend-request.schema';
 import { createFriendRequestDto, getFriendRequestsDto, respondFriendRequestDto } from './dto';
+import { User } from 'src/schemas/user.schema';
+
 
 @Injectable()
 export class FriendRequestService {
     constructor(
-        @InjectModel(FriendRequest.name) private friendRequestModel:Model<FriendRequest> 
+        @InjectModel(FriendRequest.name) private readonly friendRequestModel:Model<FriendRequest>,
+        @InjectModel(User.name) private readonly userModel:Model<User>
     ){}
 
 
@@ -16,15 +19,15 @@ export class FriendRequestService {
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
         },
     });
 
     const link = `https://chatstream.com/signup?invite=${encodeURIComponent(receiverEmail)}`;
 
-    await transporter.sendMail({
-        from: `"Chatstream" <${process.env.EMAIL_USER}>`,
+    const info = await transporter.sendMail({
+        from: `"Chatstream" <${process.env.MAIL_USER}>`,
         to: receiverEmail,
         subject: "You're invited to Chatstream!",
         html: `
@@ -34,34 +37,59 @@ export class FriendRequestService {
         `,
     });
 
-    return { message: "Invitation email sent successfully" };
+    return {
+      message: "Email sent successfully",
+      receiverEmail,
+      senderEmail,
+      messageId: info.messageId,
+    };
     }
 
 
     async sendFriendRequest(senderId:string,dto:createFriendRequestDto){
-        const sender = await this.friendRequestModel.findById(senderId);
-        const receiver = await this.friendRequestModel.findById(dto.receiverId);
-        if(!receiver){
-            // throw new BadRequestException("Receiver not found");
-            // return this.sendInviteEmail(sender.email, dto.receiverId);
-        }
+        const {receiverId,receiverEmail} = dto 
+        if(receiverId){
+            if(senderId === receiverId){
+                throw new BadRequestException("You cannot send a friend request to yourself");
+            }
+            const existingUser = await this.friendRequestModel.findOne({
+                senderId,
+                receiverId,
+                status: 'pending'
+            });
+            if(existingUser){
+                throw new BadRequestException("Friend request already sent");
+            }
 
-        if(senderId === dto.receiverId){
-            throw new BadRequestException("You cannot send a friend request to yourself");
+            const friendRequest = new this.friendRequestModel({
+                senderId,
+                receiverId
+            });
+            await friendRequest.save();
+            return {message:"friend request sent successfully to existing user"}
         }
-        const existingRequest = await this.friendRequestModel.findOne({
-            senderId,
-            receiverId: dto.receiverId,
-            status: 'pending'
-        });
-        if(existingRequest){
-            throw new BadRequestException("Friend request already sent");
+        if(receiverEmail){
+          const sender = await this.userModel.findById(senderId)  
+          const receiver = await this.userModel.findOne({email:receiverEmail})
+          if(receiver){
+            const existingUser = await this.friendRequestModel.findOne({
+                senderId,
+                receiverId:receiver._id,
+                status:"pending"
+            })
+            if(existingUser){ throw new BadRequestException("friend request already exists")}
+            
+             const friendRequest= new this.friendRequestModel({
+                senderId,
+                receiverId:receiver._id,
+             })
+
+             await friendRequest.save()
+             return{message:"friend request sent successfully using email"}        
+          }
+          const inviteInfo= await this.sendInviteEmail(sender?.email ?? "", receiverEmail)
+          return inviteInfo
         }
-        const friendRequest = new this.friendRequestModel({
-            senderId,
-            receiverId: dto.receiverId
-        });
-        return await friendRequest.save();
 
     }
 
@@ -69,34 +97,46 @@ export class FriendRequestService {
         const { status} = dto;
         // return this.friendRequestModel.findByIdAndUpdate(requestId, {status}, {new:true});
         const request = await this.friendRequestModel.findById(requestId);
+        const sender = await this.userModel.findById(request?.senderId)
         if(!request){
             throw new BadRequestException("Friend request not found");
         }
         if(request.status !== 'pending'){
-            throw new BadRequestException(`Friend request already responded to ${request.senderId}`);
+            throw new BadRequestException(`Friend request already responded to ${sender?.fullName}`);
         }
         request.status = status;
-        return request.save();
-    }
-
-    async getFriendRequests(dto:getFriendRequestsDto){
-        const {userId} = dto;
-        return this.friendRequestModel.find({
-            receiverId: userId,
-            status: 'pending'
-        }).populate('senderId', 'username email');
-
-    }
-
-    async deleteFriendRequest(userId: string, requestId: string){
-        const request = await this.friendRequestModel.findById(requestId);
-        if(!request){
-            throw new BadRequestException("Friend request not found");
+        await request.save();
+        if (dto.status === "accepted") {
+            await this.userModel.findByIdAndUpdate(request.senderId, {
+            $addToSet: { friends: request.receiverId },
+            });
+            await this.userModel.findByIdAndUpdate(request.receiverId, {
+            $addToSet: { friends: request.senderId },
+            });
         }
-        if(request.receiverId.toString() !== userId && request.senderId.toString() !== userId){
-            throw new BadRequestException("You are not authorized to delete this friend request");
-        }
-        await request.deleteOne();
-        return {message: "Friend request deleted successfully"};
+
+      return { message: `Friend request ${status} successfully` };
+
     }
+
+    // async getFriendRequests(dto:getFriendRequestsDto){
+    //     const {userId} = dto;
+    //     return this.friendRequestModel.find({
+    //         receiverId: userId,
+    //         status: 'pending'
+    //     }).populate('senderId', 'username email');
+
+    // }
+
+    // async deleteFriendRequest(userId: string, requestId: string){
+    //     const request = await this.friendRequestModel.findById(requestId);
+    //     if(!request){
+    //         throw new BadRequestException("Friend request not found");
+    //     }
+    //     if(request.receiverId.toString() !== userId && request.senderId.toString() !== userId){
+    //         throw new BadRequestException("You are not authorized to delete this friend request");
+    //     }
+    //     await request.deleteOne();
+    //     return {message: "Friend request deleted successfully"};
+    // }
 }

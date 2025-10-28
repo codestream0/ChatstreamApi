@@ -1,17 +1,23 @@
-import { IsIn, IsMongoId, IsNotEmpty } from "class-validator";
+import { IsEmail, IsIn, IsMongoId, IsNotEmpty, IsOptional } from "class-validator";
 
 
 export class createFriendRequestDto {
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsMongoId()
     receiverId: string;
+
+    @IsOptional()
+    @IsEmail()
+    receiverEmail:string
 }
 export class respondFriendRequestDto {
 
 
+    @IsIn(['accepted', 'rejected'],{
+        message:"status must be one of : accepted or rejected"
+    })
     @IsNotEmpty()
-    @IsIn(['accepted', 'rejected'])
     status: string;
 }
 export class getFriendRequestsDto {
