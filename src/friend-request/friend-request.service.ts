@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as nodemailer from "nodemailer";
 import { FriendRequest } from 'src/schemas/friend-request.schema';
 import { createFriendRequestDto, getFriendRequestsDto, respondFriendRequestDto } from './dto';
@@ -95,13 +95,12 @@ export class FriendRequestService {
 
     async respondFriendRequest(requestId:string,dto:respondFriendRequestDto){
         const { status} = dto;
-        // return this.friendRequestModel.findByIdAndUpdate(requestId, {status}, {new:true});
         const request = await this.friendRequestModel.findById(requestId);
         const sender = await this.userModel.findById(request?.senderId)
         if(!request){
             throw new BadRequestException("Friend request not found");
         }
-        if(request.status !== 'pending'){
+        if(request.status !== "pending"){
             throw new BadRequestException(`Friend request already responded to ${sender?.fullName}`);
         }
         request.status = status;
@@ -119,14 +118,34 @@ export class FriendRequestService {
 
     }
 
-    // async getFriendRequests(dto:getFriendRequestsDto){
-    //     const {userId} = dto;
-    //     return this.friendRequestModel.find({
-    //         receiverId: userId,
-    //         status: 'pending'
-    //     }).populate('senderId', 'username email');
+    async getFriendRequests(@Req() req){
+        const userId =req.user.id
+       const pendingUsers=await this.friendRequestModel.find({
+            receiverId: userId,
+            status: "pending"
+        }).populate('senderId', 'fullName email');
+       console.log({
+          userId,
+          pendingCount: pendingUsers.length,
+          pendingUsers,
 
-    // }
+        })
+       return pendingUsers;
+    }
+
+    async getSentRequests(@Req() req){
+        const userId = req.user.id
+        const pendingUsers= await this.friendRequestModel.find({
+            senderId:userId,
+            status:"pending"
+        }).populate("receiverId", "fullName email")
+        console.log({
+            userId,
+            pendingCount: pendingUsers.length,
+            pendingUsers
+        });
+        return pendingUsers;
+    }
 
     // async deleteFriendRequest(userId: string, requestId: string){
     //     const request = await this.friendRequestModel.findById(requestId);

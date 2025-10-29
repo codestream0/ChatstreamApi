@@ -11,21 +11,27 @@ export class FriendRequestController {
 
 
     // UseGuards(JwtAuthGuard)
-    @Post('request')
+    @Post("request")
     async sendFriendRequest(@Req() req, @Body() dto:createFriendRequestDto){
         console.log("authenticate user:",req.user)
         return this.friendRequestService.sendFriendRequest(req.user.id,dto);
     }
 
-    @Patch('respond/:id')
+    @Patch("respond/:id")
     async respondFriendRequest( @Param('id') id:string, @Body() dto:respondFriendRequestDto){
         return this.friendRequestService.respondFriendRequest(id,dto);
     }
 
-    // @Get('pending')
-    // async getFriendRequests(@Req() req){
-    //     return this.friendRequestService.getFriendRequests({userId: req.user.id});
-    // }
+    @Get("pending")
+    async getFriendRequests(@Req() req){
+  
+        return this.friendRequestService.getFriendRequests( req);
+    }
+
+    @Get("sent")
+    async getSentRequests(@Req() req){
+        return this.friendRequestService.getSentRequests(req)
+    }
 
     // @Delete(':id')
     // async deleteFriendRequest(@Req() req, @Param('id') requestId:string){
