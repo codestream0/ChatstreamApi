@@ -1,21 +1,21 @@
-import { Body,  Controller,  Delete,  Get,  Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body,  Controller,  Delete,  Get,  Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { FriendRequestService } from './friend-request.service';
 import { createFriendRequestDto, respondFriendRequestDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 // import { use } from 'passport';
 
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('friends')
 export class FriendRequestController {
     constructor(private readonly friendRequestService:FriendRequestService) {}
 
-
-    // UseGuards(JwtAuthGuard)
     @Post("request")
     async sendFriendRequest(@Req() req, @Body() dto:createFriendRequestDto){
         console.log("authenticate user:",req.user)
         return this.friendRequestService.sendFriendRequest(req.user.id,dto);
-    }
+    } 
 
     @Patch("respond/:id")
     async respondFriendRequest( @Param('id') id:string, @Body() dto:respondFriendRequestDto){
@@ -24,9 +24,14 @@ export class FriendRequestController {
 
     @Get("pending")
     async getFriendRequests(@Req() req){
-  
-        return this.friendRequestService.getFriendRequests( req);
+        return this.friendRequestService.getFriendRequests(req);
     }
+
+      @UseGuards(JwtAuthGuard)
+      @Get('search')
+      searchUsers(@Query('query') query: string) {
+        return this.friendRequestService.searchFriends(query);
+      }
 
     @Get("sent")
     async getSentRequests(@Req() req){

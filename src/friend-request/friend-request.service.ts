@@ -118,9 +118,19 @@ export class FriendRequestService {
 
     }
 
+    async searchFriends(query: string) {
+        const existingUsers= this.userModel.find({
+          $or: [
+            { fullName: { $regex: query, $options: 'i' } },
+            { email: { $regex: query, $options: 'i' } },
+          ],
+        }).select('fullName email _id');
+        return existingUsers;
+    }
+
     async getFriendRequests(@Req() req){
         const userId =req.user.id
-       const pendingUsers=await this.friendRequestModel.find({
+        const pendingUsers=await this.friendRequestModel.find({
             receiverId: userId,
             status: "pending"
         }).populate('senderId', 'fullName email');
@@ -147,15 +157,4 @@ export class FriendRequestService {
         return pendingUsers;
     }
 
-    // async deleteFriendRequest(userId: string, requestId: string){
-    //     const request = await this.friendRequestModel.findById(requestId);
-    //     if(!request){
-    //         throw new BadRequestException("Friend request not found");
-    //     }
-    //     if(request.receiverId.toString() !== userId && request.senderId.toString() !== userId){
-    //         throw new BadRequestException("You are not authorized to delete this friend request");
-    //     }
-    //     await request.deleteOne();
-    //     return {message: "Friend request deleted successfully"};
-    // }
 }

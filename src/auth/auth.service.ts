@@ -62,7 +62,7 @@ export class AuthService {
           // email: user.email,
           // phoneNumber: user.phoneNumber,
           // password: user.password,
-
+        
         },
         ...tokens,
       };
@@ -74,8 +74,8 @@ export class AuthService {
   async generateToken(user: User) {
     const payload = { sub: user._id, email: user.email };
 
-    const accessToken = this.JwtService.sign(payload,{ expiresIn:"5m" });
-    const refreshToken = this.JwtService.sign(payload,{ expiresIn:"10m" });
+    const accessToken = this.JwtService.sign(payload,{ expiresIn:"10m" });
+    const refreshToken = this.JwtService.sign(payload,{ expiresIn:"20m" });
     console.log("AccessToken:",accessToken);  
     console.log("RefreshToken:",refreshToken);
 
