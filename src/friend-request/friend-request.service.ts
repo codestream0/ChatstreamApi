@@ -167,7 +167,7 @@ export class FriendRequestService {
         if(!user){ throw new NotFoundException('user not found')}
         console.log("friends",user.friends);
         
-    return user.friends;
+        return user.friends;
     }
 
 }

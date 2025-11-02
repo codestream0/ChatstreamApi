@@ -99,6 +99,7 @@ throw new UnauthorizedException("invalid password")
           id: user._id,
           fullName: user.fullName,
           email: user.email,
+          phoneNumber:user.phoneNumber
         },
         ...token,
     };
