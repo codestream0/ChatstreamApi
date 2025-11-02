@@ -1,19 +1,22 @@
 import { BadRequestException, Injectable, NotFoundException, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import * as nodemailer from "nodemailer";
 import { FriendRequest } from 'src/schemas/friend-request.schema';
 import { createFriendRequestDto, getFriendRequestsDto, respondFriendRequestDto } from './dto';
-import { User } from 'src/schemas/user.schema';
+import { User, UserDocument } from 'src/schemas/user.schema';
+
+
 
 
 @Injectable()
 export class FriendRequestService {
     constructor(
         @InjectModel(FriendRequest.name) private readonly friendRequestModel:Model<FriendRequest>,
-        @InjectModel(User.name) private readonly userModel:Model<User>
+        @InjectModel(User.name) private readonly userModel:Model<UserDocument>,
+        
     ){}
-
+ 
 
     async sendInviteEmail(senderEmail: string, receiverEmail: string) {
     const transporter = nodemailer.createTransport({
@@ -97,6 +100,8 @@ export class FriendRequestService {
         const { status} = dto;
         const request = await this.friendRequestModel.findById(requestId);
         const sender = await this.userModel.findById(request?.senderId)
+        console.log(sender?.friends);
+        
         if(!request){
             throw new BadRequestException("Friend request not found");
         }
@@ -106,31 +111,44 @@ export class FriendRequestService {
         request.status = status;
         await request.save();
         if (dto.status === "accepted") {
-            await this.userModel.findByIdAndUpdate(request.senderId, {
-            $addToSet: { friends: request.receiverId },
-            });
-            await this.userModel.findByIdAndUpdate(request.receiverId, {
-            $addToSet: { friends: request.senderId },
-            });
+
+            const receiver= await this.userModel.findById(request.senderId)
+            receiver?.friends.push(request.receiverId)
+            await receiver?.save()
+
+            const send = await this.userModel.findById(request.receiverId)
+            send?.friends.push(request.senderId)
+            await send?.save()
         }
+        console.log({
+            request,
+            status
+        })
 
       return { message: `Friend request ${status} successfully` };
 
     }
 
     async searchFriends(query: string) {
-        const existingUsers= this.userModel.find({
-          $or: [
-            { fullName: { $regex: query, $options: 'i' } },
-            { email: { $regex: query, $options: 'i' } },
-          ],
-        }).select('fullName email _id');
-        return existingUsers;
+
+       if (!query) return [];
+        const regex = new RegExp(query, 'i');
+        const users = await this.userModel.find(
+            { $or: [{ fullName: regex }, { email: regex }] },
+            { fullName: 1, email: 1 }
+        ).limit(10);
+
+        // If query is email and doesn't exist
+        if (users.length === 0 && query.includes('@')) {
+            return [{ email: query.trim(), registered: false }];
+        }
+
+        return users;
     }
 
     async getFriendRequests(@Req() req){
         const userId =req.user.id
-        const pendingUsers=await this.friendRequestModel.find({
+        const pendingUsers= await this.friendRequestModel.find({
             receiverId: userId,
             status: "pending"
         }).populate('senderId', 'fullName email');
@@ -143,18 +161,13 @@ export class FriendRequestService {
        return pendingUsers;
     }
 
-    async getSentRequests(@Req() req){
-        const userId = req.user.id
-        const pendingUsers= await this.friendRequestModel.find({
-            senderId:userId,
-            status:"pending"
-        }).populate("receiverId", "fullName email")
-        console.log({
-            userId,
-            pendingCount: pendingUsers.length,
-            pendingUsers
-        });
-        return pendingUsers;
+    async getFriends(@Req() req) {
+        const userId = req.user.id;
+        const user = await this.userModel.findById(userId).populate("friends","fullName email")
+        if(!user){ throw new NotFoundException('user not found')}
+        console.log("friends",user.friends);
+        
+    return user.friends;
     }
 
 }

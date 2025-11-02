@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from '../schemas/user.schema';
+import { User, UserDocument } from '../schemas/user.schema';
 import { Model } from 'mongoose';
 import { CreateUserDto, UpdateUserDto, } from './dto';
 
 @Injectable()
 export class UserService {
-    constructor(@InjectModel(User.name) private userModel:Model<User> ) {}
+    constructor(@InjectModel(User.name) private userModel:Model<UserDocument> ) {}
 
   
   async create(data: CreateUserDto): Promise<User> {

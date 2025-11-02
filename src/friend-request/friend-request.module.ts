@@ -5,10 +5,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { FriendRequest, FriendRequestSchema } from 'src/schemas/friend-request.schema';
 import { User, UserSchema } from 'src/schemas/user.schema';
 
+
 @Module({
   imports :[MongooseModule.forFeature([
    {name:FriendRequest.name,schema:FriendRequestSchema},
-   {name:User.name,schema:UserSchema}
+   {name:User.name,schema:UserSchema},
   ])],
   providers: [FriendRequestService],
   controllers: [FriendRequestController]

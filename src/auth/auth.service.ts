@@ -35,12 +35,6 @@ export class AuthService {
       if (existingUser) throw new BadRequestException('email already exists');
 
       const hashPassword = await bcrypt.hash(dto.password, 10);
-      // const newUser = new this.userModel({
-      //   email: dto.email,
-      //   password: hashPassword,
-      //   fullName: dto.fullName,
-      //   phoneNumber: dto.phoneNumber,
-      // }); 
       const newUser= {
         email:dto.email,
         password: hashPassword,

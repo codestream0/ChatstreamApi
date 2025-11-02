@@ -3,7 +3,6 @@ import { FriendRequestService } from './friend-request.service';
 import { createFriendRequestDto, respondFriendRequestDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
-// import { use } from 'passport';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -27,20 +26,15 @@ export class FriendRequestController {
         return this.friendRequestService.getFriendRequests(req);
     }
 
-      @UseGuards(JwtAuthGuard)
-      @Get('search')
-      searchUsers(@Query('query') query: string) {
+    
+    @Get('search')
+    async searchFriends(@Query('query') query: string) {
         return this.friendRequestService.searchFriends(query);
-      }
-
-    @Get("sent")
-    async getSentRequests(@Req() req){
-        return this.friendRequestService.getSentRequests(req)
     }
 
-    // @Delete(':id')
-    // async deleteFriendRequest(@Req() req, @Param('id') requestId:string){
-    //     return this.friendRequestService.deleteFriendRequest(req.user.id, requestId);
-    // }
+    @Get("getFriends")
+    async getFriends(@Req() req){
+        return this.friendRequestService.getFriends(req)
+    }
 
 }
