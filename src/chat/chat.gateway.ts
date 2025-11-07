@@ -17,7 +17,7 @@ export class ChatGateway implements OnGatewayConnection {
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
   }
-
+ 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @MessageBody() data: { room: string },
