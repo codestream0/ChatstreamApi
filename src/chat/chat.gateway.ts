@@ -1,41 +1,59 @@
-import {
-  WebSocketGateway,
-  WebSocketServer,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-  OnGatewayConnection,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import {Server, Socket} from "socket.io";
+import {CreateMessageDto} from "./dto"
+import { ChatService } from './chat.service';
 
-@WebSocketGateway({ cors: true })
-export class ChatGateway implements OnGatewayConnection {
+
+
+@WebSocketGateway()
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect  {
+constructor(private readonly chatService:ChatService){}
   @WebSocketServer()
-  server: Server;
+  server:Server;
+  private onlineUsers = new Map<string, string>();
 
-  // Add this method
+
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
   }
- 
-  @SubscribeMessage('joinRoom')
-  async handleJoinRoom(
-    @MessageBody() data: { room: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    console.log(`Client ${client.id} joining room: ${data.room}`);
-    await client.join(data.room);
-    client.emit('joinedRoom', { room: data.room });
+
+  handleDisconnect(client: Socket) {
+    for (const [userId, socketId] of this.onlineUsers.entries()) {
+      if (socketId === client.id) {
+        this.onlineUsers.delete(userId);
+        break;
+      }
+    }
+    console.log(`Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage('sendMessage')
-  handleMessage(
-    @MessageBody() data: { to: string; message: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.server.to(data.to).emit('receiveMessage', {
-      from: client.id,
-      message: data.message,
-    });
+  @SubscribeMessage('register')
+  handleRegister(@MessageBody() userId: string, @ConnectedSocket() client: Socket) {
+    this.onlineUsers.set(userId, client.id);
+    console.log(`User ${userId} registered with socket ${client.id}`);
+  }
+
+  @SubscribeMessage("sendMessage")
+  newMessage(@MessageBody() dto:CreateMessageDto  ){
+    const message = this.chatService.saveMessage(dto)
+    console.log(message);
+
+    const receiverSocketId = this.onlineUsers.get(dto.receiverId);
+    if (receiverSocketId) {
+      // emit to receiver
+      this.server.to(receiverSocketId).emit('receiveMessage', message);
+    }
+
+    const senderSocketId = this.onlineUsers.get(dto.senderId);
+    if (senderSocketId) {
+      this.server.to(senderSocketId).emit('messageSent', message);
+    }
+  }
+
+
+  @SubscribeMessage('getMessages')
+  async handleGetMessages(@MessageBody() data: { userA: string; userB: string }) {
+    const messages = await this.chatService.getMessagesBetweenUsers(data.userA, data.userB);
+    return messages;
   }
 }
