@@ -25,7 +25,7 @@ export class ChatService {
                 { senderId: userB, receiverId: userA },
                 ],
             })
-            .sort({ createdAt: 1 }); // oldest first
+            .sort({ createdAt: 1 }); 
   }
 
 }
