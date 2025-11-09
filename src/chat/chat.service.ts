@@ -7,7 +7,7 @@ import {CreateMessageDto} from "./dto"
 @Injectable()
 export class ChatService {
     constructor(
-        @InjectModel(Message.name) private messageModel: Model<Message>,
+        @InjectModel(Message.name) private readonly messageModel: Model<Message>,
     ){}
 
     async saveMessage(dto:CreateMessageDto){
@@ -18,14 +18,15 @@ export class ChatService {
 
 
     async getMessagesBetweenUsers(userA: string, userB: string) {
-        return this.messageModel
+        const message = await this.messageModel
             .find({
                 $or: [
                 { senderId: userA, receiverId: userB },
                 { senderId: userB, receiverId: userA },
                 ],
             })
-            .sort({ createdAt: 1 }); 
+            .sort({ createdAt: 1 });
+         return message    
   }
 
 }

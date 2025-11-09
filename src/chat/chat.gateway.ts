@@ -34,8 +34,8 @@ constructor(private readonly chatService:ChatService){}
   }
 
   @SubscribeMessage("sendMessage")
-  newMessage(@MessageBody() dto:CreateMessageDto  ){
-    const message = this.chatService.saveMessage(dto)
+  async newMessage(@MessageBody() dto:CreateMessageDto  ){
+    const message = await this.chatService.saveMessage(dto)
     console.log(message);
 
     const receiverSocketId = this.onlineUsers.get(dto.receiverId);
