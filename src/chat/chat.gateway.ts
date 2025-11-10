@@ -9,7 +9,7 @@ import { ChatService } from './chat.service';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect  {
 constructor(private readonly chatService:ChatService){}
   @WebSocketServer()
-  server:Server;
+  server: Server;
   private onlineUsers = new Map<string, string>();
 
 
@@ -28,9 +28,19 @@ constructor(private readonly chatService:ChatService){}
   }
 
   @SubscribeMessage('register')
-  handleRegister(@MessageBody() userId: string, @ConnectedSocket() client: Socket) {
+  async handleRegister(@MessageBody() userId: string, @ConnectedSocket() client: Socket) {
     this.onlineUsers.set(userId, client.id);
-    console.log(`User ${userId} registered with socket ${client.id}`);
+    console.log(`User ${userId} registered with socket ${client.id}`)
+
+    const unReadMessage = await this.chatService.getUnreadMessage(userId) as Array<{ _id: string }>;
+    if(unReadMessage.length > 0){
+      client.emit("offlineMessage",unReadMessage)
+
+        // await this.chatService.markAsRead(unReadMessage.map(m => m._id));
+      const messageIds: string[] = unReadMessage.map(msg => msg._id.toString())
+      await this.chatService.markAsRead(messageIds)  
+    }
+
   }
 
   @SubscribeMessage("sendMessage")
@@ -40,7 +50,6 @@ constructor(private readonly chatService:ChatService){}
 
     const receiverSocketId = this.onlineUsers.get(dto.receiverId);
     if (receiverSocketId) {
-      // emit to receiver
       this.server.to(receiverSocketId).emit('receiveMessage', message);
     }
 
@@ -56,4 +65,5 @@ constructor(private readonly chatService:ChatService){}
     const messages = await this.chatService.getMessagesBetweenUsers(data.userA, data.userB);
     return messages;
   }
+  
 }
