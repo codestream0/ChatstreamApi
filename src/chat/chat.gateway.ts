@@ -35,22 +35,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('register')
-  handleRegister(
+  async handleRegister(
     @MessageBody() userId: string,
     @ConnectedSocket() client: Socket,
   ) {
     this.onlineUsers.set(userId, client.id);
     console.log(`User ${userId} registered with socket ${client.id}`);
+
+    const unreadMessages = (await this.chatService.getUnreadMessage(userId)) as Array<{ _id: string }>;
+
+    if (unreadMessages.length > 0) {
+      client.emit('offlineMessage', unreadMessages);
+
+      const messageIds: string[] = unreadMessages.map((msg) => msg._id.toString());
+      await this.chatService.markAsRead(messageIds);
+    }
   }
 
   @SubscribeMessage('sendMessage')
   async newMessage(@MessageBody() dto: CreateMessageDto) {
     const message = await this.chatService.saveMessage(dto);
-    console.log(message);
+    console.log('Message saved:', message);
 
     const receiverSocketId = this.onlineUsers.get(dto.receiverId);
     if (receiverSocketId) {
-      // Emit to receiver
       this.server.to(receiverSocketId).emit('receiveMessage', message);
     }
 
