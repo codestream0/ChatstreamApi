@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Message } from 'src/schemas/message.schema';
 import {CreateMessageDto} from "./dto"
+import { read } from 'fs';
 
 @Injectable()
 export class ChatService {
@@ -27,6 +28,21 @@ export class ChatService {
             })
             .sort({ createdAt: 1 });
          return message    
+  }
+
+  async getUnreadMessage(userId:string){
+    const unReadMessage = await this.messageModel.find({receiverId:userId,read:false}).sort({createdAt:1})
+    return unReadMessage;
+  }
+
+
+  async markAsRead(messageIds:string[]){
+    const markAsRead = await this.messageModel.updateMany(
+        {_id:{$in:messageIds}},
+        { $set: {read:true}}
+    )
+
+    return markAsRead;
   }
 
 }
