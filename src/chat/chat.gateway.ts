@@ -59,11 +59,18 @@ constructor(private readonly chatService:ChatService){}
     }
   }
 
-
   @SubscribeMessage('getMessages')
-  async handleGetMessages(@MessageBody() data: { userA: string; userB: string }) {
-    const messages = await this.chatService.getMessagesBetweenUsers(data.userA, data.userB);
-    return messages;
+  async handleGetMessages(
+    @MessageBody() data: { userA: string; userB: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const messages = await this.chatService.getMessagesBetweenUsers(
+      data.userA,
+      data.userB,
+    );
+
+    client.emit('chatHistory', messages);
   }
+
   
 }
