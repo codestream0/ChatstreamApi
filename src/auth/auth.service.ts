@@ -88,7 +88,7 @@ export class AuthService {
       const isPasswordValid = await bcrypt.compare(dto.password, user.password);
       // if (isPasswordValid){ throw new UnauthorizedException('invalid password');}
       if(!isPasswordValid){
-throw new UnauthorizedException("invalid password")
+          throw new UnauthorizedException("invalid password")
       }
 
       const token= await this.generateToken(user);

@@ -71,11 +71,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('getMessages')
   async handleGetMessages(
     @MessageBody() data: { userA: string; userB: string },
+    @ConnectedSocket() client: Socket,
   ) {
     const messages = await this.chatService.getMessagesBetweenUsers(
       data.userA,
       data.userB,
     );
-    return messages;
+
+    client.emit('chatHistory', messages);
   }
 }
