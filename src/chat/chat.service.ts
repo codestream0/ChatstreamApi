@@ -12,6 +12,7 @@ export class ChatService {
 
     async saveMessage(dto:CreateMessageDto){
         const message =  new this.messageModel(dto)
+        
         const saveTodb= await message.save()
         return saveTodb;
     }

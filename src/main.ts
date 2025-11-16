@@ -3,7 +3,6 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -25,7 +24,6 @@ async function bootstrap() {
     }),
   );
 
-   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Chatstream API')
     .setDescription('API documentation for the Chatstream backend')

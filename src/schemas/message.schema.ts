@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, Types, } from "mongoose";
+import mongoose, { Document, Types, } from "mongoose";
 
 
 @Schema({timestamps:true})
@@ -16,6 +16,9 @@ export class Message extends Document{
 
     @Prop({ default: false })
     read: boolean;
+
+    @Prop( { type: mongoose.Schema.Types.ObjectId, ref: "User" })
+    sender:string
 
 }
 

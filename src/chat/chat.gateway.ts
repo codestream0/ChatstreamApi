@@ -46,16 +46,20 @@ constructor(private readonly chatService:ChatService){}
   @SubscribeMessage("sendMessage")
   async newMessage(@MessageBody() dto:CreateMessageDto  ){
     const message = await this.chatService.saveMessage(dto)
+    const populatedMessage=  await message.populate("sender", "fullName")
+
     console.log(message);
+    console.log("populatedMessage: ",populatedMessage);
+    
 
     const receiverSocketId = this.onlineUsers.get(dto.receiverId);
     if (receiverSocketId) {
-      this.server.to(receiverSocketId).emit('receiveMessage', message);
+      this.server.to(receiverSocketId).emit('receiveMessage', populatedMessage);
     }
 
     const senderSocketId = this.onlineUsers.get(dto.senderId);
     if (senderSocketId) {
-      this.server.to(senderSocketId).emit('messageSent', message);
+      this.server.to(senderSocketId).emit('messageSent', populatedMessage);
     }
   }
 
