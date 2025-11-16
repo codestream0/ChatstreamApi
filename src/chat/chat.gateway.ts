@@ -59,12 +59,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const receiverSocketId = this.onlineUsers.get(dto.receiverId);
     if (receiverSocketId) {
-      this.server.to(receiverSocketId).emit('receiveMessage', message);
+      this.server.to(receiverSocketId).emit('receiveMessage', populatedMessage);
     }
 
     const senderSocketId = this.onlineUsers.get(dto.senderId);
     if (senderSocketId) {
-      this.server.to(senderSocketId).emit('messageSent', message);
+      this.server.to(senderSocketId).emit('messageSent', populatedMessage);
     }
   }
 

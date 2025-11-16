@@ -149,7 +149,6 @@ export class FriendRequestService {
       )
       .limit(10);
 
-    // If query is email and doesn't exist
     if (users.length === 0 && query.includes('@')) {
       return [{ email: query.trim(), registered: false }];
     }
