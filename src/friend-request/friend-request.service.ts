@@ -32,7 +32,7 @@ export class FriendRequestService {
       },
     });
 
-    const link = `https://chatstream.com/signup?invite=${encodeURIComponent(receiverEmail)}`;
+    const link = `https://chatstream-app.netlify.app/signup?invite=${encodeURIComponent(receiverEmail)}`;
 
     const info = await transporter.sendMail({
       from: `"Chatstream" <${process.env.MAIL_USER}>`,
@@ -157,6 +157,7 @@ export class FriendRequestService {
   }
 
   async getFriendRequests(@Req() req) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const userId = req.user.id;
     const pendingUsers = await this.friendRequestModel
       .find({
